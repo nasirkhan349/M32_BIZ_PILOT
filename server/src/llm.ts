@@ -198,16 +198,16 @@ export async function runChatWithTools(messages: Array<{ role: 'system' | 'user'
 		try {
 			const orModel = process.env.OPENROUTER_MODEL || 'mistralai/mistral-7b-instruct:free';
 			console.log('[LLM] Trying OpenRouter model:', orModel);
-			const resp = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-				method: 'POST',
-				headers: {
-					'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
-					'Content-Type': 'application/json',
-					'HTTP-Referer': 'http://localhost:4000',
-					'X-Title': 'BizPilot',
-				},
-				body: JSON.stringify({ model: orModel, messages: sanitized, temperature: 0.4 }),
-			});
+			const resp = await fetch("https://api.mistral.ai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+          "Content-Type": "application/json",
+          "HTTP-Referer": "http://localhost:4000",
+          "X-Title": "BizPilot",
+        },
+        body: JSON.stringify({ model: orModel, messages: sanitized, temperature: 0.4 }),
+      });
 			if (!resp.ok) {
 				const text = await resp.text();
 				console.error('[LLM] OpenRouter failed', resp.status, text);
