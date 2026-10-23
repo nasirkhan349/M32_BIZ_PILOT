@@ -5,6 +5,7 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeHighlight from 'rehype-highlight'
 import 'highlight.js/styles/github-dark.css'
+import { ConversationList } from './components/ConversationList'
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:4000/api'
 
@@ -127,6 +128,7 @@ function Chat() {
   const [input, setInput] = useState('')
   const [chatId, setChatId] = useState<string | null>(null)
   const [chats, setChats] = useState<Array<{ _id: string; title: string; updatedAt?: string }>>([])
+  const [searchQuery, setSearchQuery] = useState('')
   const [isThinking, setIsThinking] = useState(false)
   const { headers, logout, isAuthed } = useAuth()
   const nav = useNavigate()
@@ -381,7 +383,7 @@ function Chat() {
   }, [])
 
   useEffect(() => {
-    if (stickToBottom && endRef.current) {
+    if (stickToBottom && endRef.current?.scrollIntoView) {
       // Smooth during streaming; instant at message boundary changes can be okay too
       endRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' })
     }
@@ -417,29 +419,16 @@ function Chat() {
       {isSidebarOpen && (
         <div className="fixed inset-0 z-40 md:hidden" role="dialog" aria-modal="true">
           <button className="absolute inset-0 bg-black/40" aria-label="Close" onClick={() => setIsSidebarOpen(false)} />
-          <div className="absolute left-0 top-0 bottom-0 w-[82vw] max-w-xs p-3 overflow-auto" style={{background:'var(--panel-bg)', borderRight: '1px solid var(--panel-border)'}}>
-            <div className="flex items-center justify-between mb-2">
-              <b style={{color:'var(--text-primary)'}}>Conversations</b>
-              <button className="px-2 py-1 rounded border" onClick={createNewChat}>New</button>
-            </div>
-            <div className="flex flex-col">
-              {chats.map(c => {
-                const isActive = chatId === c._id
-                return (
-                  <div key={c._id} className={`flex items-center gap-2 px-2 py-2 border-b`} style={{borderColor:'var(--panel-border)', background: isActive ? 'rgba(37,99,235,0.08)' : 'transparent'}}>
-                    <div className="flex-1 min-w-0">
-                      <button onClick={()=>{ openChat(c._id); setIsSidebarOpen(false) }} className="text-left w-full truncate" style={{color:'var(--text-primary)'}}>
-                        {c.title || 'Untitled'}
-                      </button>
-                      <div className="text-[10px] opacity-70" style={{color:'var(--text-primary)'}}>{c.updatedAt ? new Date(c.updatedAt).toLocaleString() : ''}</div>
-                    </div>
-                    <button className="p-1 rounded border" onClick={()=>deleteChat(c._id)} aria-label="Delete" title="Delete">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
-                    </button>
-                  </div>
-                )
-              })}
-            </div>
+          <div className="absolute left-0 top-0 bottom-0 w-[82vw] max-w-xs p-3 overflow-auto flex flex-col justify-between" style={{background:'var(--panel-bg)', borderRight: '1px solid var(--panel-border)'}}>
+            <ConversationList
+              chats={chats}
+              activeChatId={chatId}
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              onSelectChat={(id) => { openChat(id); setIsSidebarOpen(false) }}
+              onDeleteChat={deleteChat}
+              onCreateChat={createNewChat}
+            />
             <div className="mt-3">
               <button className="w-full px-3 py-2 rounded border" onClick={() => setIsSidebarOpen(false)}>Close</button>
             </div>
@@ -447,29 +436,16 @@ function Chat() {
         </div>
       )}
       <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-[260px_1fr] gap-3 overflow-hidden">
-        <aside className="hidden md:block border-r border-zinc-800 p-3" style={{background:'var(--panel-bg)'}}>
-          <div className="flex items-center justify-between mb-2">
-            <b style={{color:'var(--text-primary)'}}>Conversations</b>
-            <button className="px-2 py-1 rounded border" onClick={createNewChat}>New</button>
-          </div>
-          <div className="flex flex-col">
-            {chats.map(c => {
-              const isActive = chatId === c._id
-              return (
-                <div key={c._id} className={`flex items-center gap-2 px-2 py-2 border-b`} style={{borderColor:'var(--panel-border)', background: isActive ? 'rgba(37,99,235,0.08)' : 'transparent'}}>
-                  <div className="flex-1 min-w-0">
-                    <button onClick={()=>openChat(c._id)} className="text-left w-full truncate" style={{color:'var(--text-primary)'}}>
-                      {c.title || 'Untitled'}
-                    </button>
-                    <div className="text-[10px] opacity-70" style={{color:'var(--text-primary)'}}>{c.updatedAt ? new Date(c.updatedAt).toLocaleString() : ''}</div>
-                  </div>
-                  <button className="p-1 rounded border" onClick={()=>deleteChat(c._id)} aria-label="Delete" title="Delete">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
-                  </button>
-                </div>
-              )
-            })}
-          </div>
+        <aside className="hidden md:block border-r border-zinc-800 p-3 overflow-y-auto" style={{background:'var(--panel-bg)'}}>
+          <ConversationList
+            chats={chats}
+            activeChatId={chatId}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            onSelectChat={openChat}
+            onDeleteChat={deleteChat}
+            onCreateChat={createNewChat}
+          />
         </aside>
         <div className="flex flex-col min-h-0 overflow-hidden">
           <div ref={scrollContainerRef} className="flex-1 overflow-auto min-h-0 p-4 pb-24 flex flex-col gap-2">
