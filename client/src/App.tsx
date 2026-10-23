@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, useRef } from 'react'
 import { Routes, Route, Link, useNavigate } from 'react-router-dom'
+import { ConversationSearch } from './components/ConversationSearch'
 import './App.css'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -127,6 +128,7 @@ function Chat() {
   const [input, setInput] = useState('')
   const [chatId, setChatId] = useState<string | null>(null)
   const [chats, setChats] = useState<Array<{ _id: string; title: string; updatedAt?: string }>>([])
+  const [searchQuery, setSearchQuery] = useState('')
   const [isThinking, setIsThinking] = useState(false)
   const { headers, logout, isAuthed } = useAuth()
   const nav = useNavigate()
@@ -181,6 +183,12 @@ function Chat() {
     const data = await res.json()
     if (res.ok) setChats(data.chats)
   }
+
+  const filteredChats = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase()
+    if (!q) return chats
+    return chats.filter((c) => (c.title || '').toLowerCase().includes(q))
+  }, [chats, searchQuery])
 
   const createNewChat = async () => {
     // Start a brand-new thread: clear current context first
@@ -422,8 +430,9 @@ function Chat() {
               <b style={{color:'var(--text-primary)'}}>Conversations</b>
               <button className="px-2 py-1 rounded border" onClick={createNewChat}>New</button>
             </div>
+            <ConversationSearch value={searchQuery} onChange={setSearchQuery} />
             <div className="flex flex-col">
-              {chats.map(c => {
+              {filteredChats.map(c => {
                 const isActive = chatId === c._id
                 return (
                   <div key={c._id} className={`flex items-center gap-2 px-2 py-2 border-b`} style={{borderColor:'var(--panel-border)', background: isActive ? 'rgba(37,99,235,0.08)' : 'transparent'}}>
@@ -439,6 +448,11 @@ function Chat() {
                   </div>
                 )
               })}
+              {filteredChats.length === 0 && (
+                <div className="text-sm opacity-70 px-2 py-4 text-center" style={{ color: 'var(--text-primary)' }}>
+                  No conversations found
+                </div>
+              )}
             </div>
             <div className="mt-3">
               <button className="w-full px-3 py-2 rounded border" onClick={() => setIsSidebarOpen(false)}>Close</button>
@@ -452,8 +466,9 @@ function Chat() {
             <b style={{color:'var(--text-primary)'}}>Conversations</b>
             <button className="px-2 py-1 rounded border" onClick={createNewChat}>New</button>
           </div>
+          <ConversationSearch value={searchQuery} onChange={setSearchQuery} />
           <div className="flex flex-col">
-            {chats.map(c => {
+            {filteredChats.map(c => {
               const isActive = chatId === c._id
               return (
                 <div key={c._id} className={`flex items-center gap-2 px-2 py-2 border-b`} style={{borderColor:'var(--panel-border)', background: isActive ? 'rgba(37,99,235,0.08)' : 'transparent'}}>
@@ -469,6 +484,11 @@ function Chat() {
                 </div>
               )
             })}
+            {filteredChats.length === 0 && (
+              <div className="text-sm opacity-70 px-2 py-4 text-center" style={{ color: 'var(--text-primary)' }}>
+                No conversations found
+              </div>
+            )}
           </div>
         </aside>
         <div className="flex flex-col min-h-0 overflow-hidden">
